@@ -1,0 +1,5 @@
+"Scenario","n_train","n_test","RMSE","RMSE_sd","MAE","MAE_sd","Mean_Lag1_Resid_Autocorr"
+"Random split (70/30, mean of 100 reps)",1512,648,0.7231,0.0204,0.5708,0.0159,0.103
+"Temporal block (2015-21 / 2022-24)",1512,648,0.7583,NA,0.6004,NA,0.251
+"Spatiotemporal block (held-out cities x 2022-24)",1428,36,0.9568,NA,0.7324,NA,0.184
+"Spatial block only (held-out cities, all years)",2040,120,0.8277,NA,0.6373,NA,0.191
