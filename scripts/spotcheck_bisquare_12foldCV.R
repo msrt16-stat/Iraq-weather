@@ -49,7 +49,7 @@ setwd(OUTPUT_DIR)
 
 library(readxl); library(dplyr); library(GWmodel); library(sp); library(parallel)
 
-rm(list=ls())
+rm(list = setdiff(ls(), c("PROJECT_ROOT", "OUTPUT_DIR")))
 set.seed(20240715)
 
 ## ---- 1. Load & clean ----

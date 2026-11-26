@@ -67,7 +67,7 @@ library(blockCV)
 library(sf)
 library(parallel)
 
-rm(list=ls())
+rm(list = setdiff(ls(), c("PROJECT_ROOT", "OUTPUT_DIR")))
 
 set.seed(20240715)
 

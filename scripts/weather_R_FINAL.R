@@ -44,7 +44,7 @@ getwd()
 ## comment above the loop for how to reduce this if needed.
 ## ============================================================
 
-rm(list=ls())
+rm(list = setdiff(ls(), c("PROJECT_ROOT", "OUTPUT_DIR")))
 cat("\f")
 Seed=123
 rTrain=0.75 # 75%
