@@ -1,3 +1,3 @@
-Run started: 2026-11-26 12:07:30 
-weather_R_FINAL.R                  finished in   19.1 min
-rebuild_srf_and_importance.R       finished in    3.1 min
+Run started: 2026-11-26 17:18:33 
+weather_R_FINAL.R                  finished in   17.9 min
+rebuild_srf_and_importance.R       finished in    6.1 min

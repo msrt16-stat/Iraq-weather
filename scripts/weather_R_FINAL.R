@@ -289,7 +289,7 @@ RSS_GWR=sum((TestData$Y[ok]-pred_gwr[ok])^2)
 TSS_GWR=sum((TestData$Y[ok]-mean(TestData$Y[ok]))^2)
 R2_GWR=1-(RSS_GWR/TSS_GWR)
 RMSE_GWR = sqrt(MSE_GWR)
-MAE_GWR = mean(abs(gwr_model$SDF$gwr.e))
+MAE_GWR = mean(abs(TestData$Y[ok] - pred_gwr[ok]))   # FIX: test-set MAE (was training residuals gwr_model$SDF$gwr.e)
 
 AIC_GWR_B=gwr_model$results$AICb
 AIC_GWR_H=gwr_model$results$AICh
