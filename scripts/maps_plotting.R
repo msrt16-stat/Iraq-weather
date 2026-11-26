@@ -232,6 +232,13 @@ if (!dir.exists(output_dir)) {
 
 ## ---- 4. Build a standard interpolation grid over Iraq ----
 grid_sf <- st_make_grid(iraq_sf, n = c(150, 150), what = "centers")
+## Grid cell size, passed explicitly to geom_tile() below. Letting ggplot
+## infer the tile width from floating-point centre spacing left a thin
+## white seam (one column) in the maps; tiles are also enlarged by 2%
+## so that adjacent tiles overlap slightly.
+grid_bb <- st_bbox(iraq_sf)
+cell_w  <- as.numeric(grid_bb["xmax"] - grid_bb["xmin"]) / 150
+cell_h  <- as.numeric(grid_bb["ymax"] - grid_bb["ymin"]) / 150
 grid_sf <- st_sf(geometry = grid_sf)
 
 ## Precise bounding box for zooming the map tightly to Iraq
@@ -346,7 +353,9 @@ for (yr in 2015:2024) {
     ## Layer 1: the interpolated humidity choropleth
     geom_tile(
       data = idw_df,
-      aes(x = x, y = y, fill = Humidity_Class)
+      aes(x = x, y = y, fill = Humidity_Class),
+      width = cell_w * 1.02, height = cell_h * 1.02,
+      colour = NA
     ) +
 
     scale_fill_manual(
@@ -354,7 +363,7 @@ for (yr in 2015:2024) {
       limits = humidity_labels,
       breaks = humidity_labels,
       drop = FALSE,
-      name = "Humidity",
+      name = "Humidity (g/kg)",
       guide = guide_legend(
         override.aes = list(alpha = 1)
       )
