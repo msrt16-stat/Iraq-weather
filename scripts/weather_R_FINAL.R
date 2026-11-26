@@ -1,6 +1,6 @@
 
 ## Set the path to your desired folder with this command
-PROJECT_ROOT <- "C:/Weather Project"
+PROJECT_ROOT <- Sys.getenv("IRAQ_WEATHER_ROOT", unset = getwd())  # set by run_all.R; see README
 OUTPUT_DIR   <- file.path(PROJECT_ROOT, "outputs", "01_weather_R_FINAL")
 if (!dir.exists(OUTPUT_DIR)) dir.create(OUTPUT_DIR, recursive = TRUE)
 setwd(OUTPUT_DIR)

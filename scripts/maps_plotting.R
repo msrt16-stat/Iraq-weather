@@ -49,7 +49,7 @@
 ## ============================================================
 
 ## Set the path to your desired working folder
-PROJECT_ROOT <- "C:/Weather Project"
+PROJECT_ROOT <- Sys.getenv("IRAQ_WEATHER_ROOT", unset = getwd())  # set by run_all.R; see README
 OUTPUT_DIR   <- file.path(PROJECT_ROOT, "outputs", "10_maps_plotting")
 if (!dir.exists(OUTPUT_DIR)) dir.create(OUTPUT_DIR, recursive = TRUE)
 setwd(OUTPUT_DIR)
@@ -157,8 +157,8 @@ lookup <- data.frame(
   NAME_1 = c(
     "Dihok", "Ninawa", "Arbil", "As-Sulaymaniyah", "At-Ta'mim",
     "Salah al-Din", "Diyala", "Baghdad", "Al-Anbar", "Wasit",
-    "Karbala'", "Babil", "An-Najaf", "Maysan", "Al-Qadisiyah",
-    "Dhi-Qar", "Muthanna", "Al-Basrah"
+    "Karbala'", "Babil", "An-Najaf", "Al-Qadisiyah", "Dhi-Qar",
+    "Maysan", "Muthanna", "Al-Basrah"   # 14-16 verified by point-in-polygon on the data coordinates
   )
 )
 

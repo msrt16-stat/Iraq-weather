@@ -42,7 +42,7 @@ required_pkgs <- c("readxl", "dplyr", "GWmodel", "sp", "parallel")
 new_pkgs <- required_pkgs[!(required_pkgs %in% installed.packages()[, "Package"])]
 if (length(new_pkgs)) install.packages(new_pkgs, repos = "https://cloud.r-project.org")
 
-PROJECT_ROOT <- "C:/Weather Project"
+PROJECT_ROOT <- Sys.getenv("IRAQ_WEATHER_ROOT", unset = getwd())  # set by run_all.R; see README
 OUTPUT_DIR   <- file.path(PROJECT_ROOT, "outputs", "03_spotcheck_bisquare_12foldCV")
 if (!dir.exists(OUTPUT_DIR)) dir.create(OUTPUT_DIR, recursive = TRUE)
 setwd(OUTPUT_DIR)

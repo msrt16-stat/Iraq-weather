@@ -1,5 +1,5 @@
 
-PROJECT_ROOT <- "C:/Weather Project"
+PROJECT_ROOT <- Sys.getenv("IRAQ_WEATHER_ROOT", unset = getwd())  # set by run_all.R; see README
 OUTPUT_DIR   <- file.path(PROJECT_ROOT, "outputs", "04_rerun_sr_random_split_75_25")
 if (!dir.exists(OUTPUT_DIR)) dir.create(OUTPUT_DIR, recursive = TRUE)
 setwd(OUTPUT_DIR)

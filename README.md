@@ -1,131 +1,71 @@
 # Iraq-weather
-# Reproducibility Repository -- Interpolation Gains, Extrapolation Losses
 
-This repository contains the complete R pipeline used to produce every
-model, table, and robustness result reported in the paper *"Interpolation
-Gains, Extrapolation Losses: Spatial versus Global Machine Learning Models
-for Predicting Humidity Across Iraq's Governorates."*
+**Reproducibility repository for:** *Interpolation Gains, Extrapolation Losses: Spatial versus Global Machine Learning Models for Predicting Humidity Across Iraq's Governorates* (submitted to *Computers & Geosciences*).
 
-## Before you run anything
+This repository contains the data, R code and archived outputs needed to reproduce every model, table and figure in the paper: six models (OLS, RF, SVR and their spatial counterparts SR, SRF, SSVR), the leakage-free spatial-lag construction, random-split and leave-one-governorate-out (LOCO) validation, rank-based tests, and sensitivity analyses.
 
-- Every script sets a shared project root and writes its outputs into its
-  own numbered subfolder:
-  ```r
-  PROJECT_ROOT <- "C:/Weather Project"
-  OUTPUT_DIR   <- file.path(PROJECT_ROOT, "outputs", "0X_scriptname")
-  if (!dir.exists(OUTPUT_DIR)) dir.create(OUTPUT_DIR, recursive = TRUE)
-  setwd(OUTPUT_DIR)
-  ```
-  Replace `PROJECT_ROOT` with your own path before running any script.
-- Place `Dalya5x.xlsx` directly in `PROJECT_ROOT`; every script reads it
-  automatically (no file-selection prompt), so the pipeline can run
-  non-interactively. `maps_plotting.R` also needs the Iraq governorate
-  shapefile at `PROJECT_ROOT/Iraq_shp/gadm36_IRQ_1.shp`.
-- A few scripts read another script's output (script 7 needs scripts 5-6;
-  script 4 needs scripts 2-3), via full `PROJECT_ROOT`-based paths -- run
-  the scripts in the order below at least once so these files exist.
-- Required R packages (install once): `openxlsx`, `readxl`, `spgwr`,
-  `GWmodel`, `sp`, `sf`, `spdep`, `e1071`, `randomForest`, `RANN`,
-  `ggplot2`, `dplyr`, `scatterpie`, `ggspatial`, `ggnewscale`, `gstat`,
-  `rnaturalearth`, `rnaturalearthdata`, `blockCV`, `parallel` (base R).
-- Several scripts are checkpointed: they write partial results as they go
-  and skip completed folds/reps on a re-run. If interrupted, just re-run
-  the script -- it resumes rather than restarts.
-- Runtime varies enormously, from under a minute
-  (`rebuild_srf_and_importance.R`) to several hours
-  (`gwr_blockcv_scenarios.R`, `sensitivity_analysis.R`). See the runtime
-  warning inside each script before running.
+| | |
+|---|---|
+| Program name | Iraq-weather |
+| Language | R (≥ 4.2) |
+| Size | about 3,400 lines of R in 10 scripts; < 10 MB with data and outputs |
+| Hardware | standard desktop/laptop; a multi-core CPU shortens scripts 2 and 8 |
+| Contact | Mohsen Mohammadzadeh, Department of Statistics, Tarbiat Modares University, Tehran, Iran — mohsen_m@modares.ac.ir |
+| Licence | code: MIT (see `LICENSE`); data: see [Data sources and licences](#data-sources-and-licences) |
 
-## Recommended execution order
+---
 
-1. `weather_R_FINAL.R`
-2. `gwr_blockcv_scenarios.R`
-3. `spotcheck_bisquare_12foldCV.R`
-4. `rerun_sr_random_split_75_25.R`
-5. `srf_spatial_loco.R`
-6. `ssvr_spatial_loco.R`
-7. `global_models_spatial_loco.R`
-8. `sensitivity_analysis.R`
-9. `rebuild_srf_and_importance.R`
-10. `maps_plotting.R`
+## 1. Quick start
 
-## Scripts, their outputs, and what each supports in the paper
+```bash
+git clone https://github.com/msrt16-stat/Iraq-weather.git
+cd Iraq-weather
+Rscript get_boundaries.R      # downloads the GADM governorate shapefile (needed only for the maps)
+Rscript run_all.R quick       # ~1-5 min: reproduces Table 2 and the variable-importance figure
+Rscript run_all.R             # full pipeline: several hours
+```
 
-| # | Script | Output files (in `outputs/0#_scriptname/`) | Supports |
+`run_all.R` checks that the required packages are installed, runs the scripts in the order below, writes a timing log (`outputs/run_all_log.txt`) and records the R session (`outputs/sessionInfo.txt`).
+
+No path needs to be edited. Each script locates the project through the environment variable `IRAQ_WEATHER_ROOT`, which `run_all.R` sets to the repository root. To run a single script interactively, start R in the repository root (or call `Sys.setenv(IRAQ_WEATHER_ROOT = "/path/to/Iraq-weather")`) and `source("scripts/<name>.R")`.
+
+### Required R packages
+
+```r
+install.packages(c("openxlsx", "readxl", "spgwr", "GWmodel", "sp", "sf", "spdep",
+                   "e1071", "randomForest", "RANN", "ggplot2", "dplyr", "scatterpie",
+                   "ggspatial", "ggnewscale", "gstat", "rnaturalearth",
+                   "rnaturalearthdata", "blockCV"))
+# for get_boundaries.R only:
+install.packages(c("geodata", "terra"))
+```
+
+The package versions used for the archived outputs are listed in `outputs/sessionInfo.txt`.
+
+---
+
+## 2. Data
+
+`Dalya5x.xlsx` — 2,160 rows = 18 governorates × 120 months (January 2015 – December 2024), one sheet, no missing values.
+
+| Column | Meaning | Unit | NASA POWER parameter |
 |---|---|---|---|
-| 1 | `weather_R_FINAL.R` | `k_sensitivity_summary.csv`, `train_metrics_for_table2.csv`, `test_metrics_for_table2.csv`, `table2_combined.csv` | **Table 2**; k-sensitivity table |
-| 2 | `gwr_blockcv_scenarios.R` | `loco_spatial_by_city.csv`, `loco_spatiotemporal_by_city.csv`, `rolling_temporal_by_year.csv` (+ optional `loco_summary_stats.csv`, `blockcv_comparison_results_single_fold.csv`); also `random_split_100reps.csv` (superseded, see #4) | SR robustness: Rolling-origin / Spatial / Spatiotemporal LOCO rows; per-governorate LOCO appendix |
-| 3 | `spotcheck_bisquare_12foldCV.R` | `spotcheck_spatial_loco_bisquare.csv`; also an internal random-split baseline (superseded, see #4) | Bi-square/12-fold-CV spot-check table |
-| 4 | `rerun_sr_random_split_75_25.R` | `random_split_100reps.csv`, `spotcheck_random_bisquare.csv` (both 75/25, **authoritative**) | Random-split baseline rows of both CV tables above |
-| 5 | `srf_spatial_loco.R` | `srf_spatial_loco.csv`, `srf_random_split_baseline.csv` | SRF's random-split-vs-LOCO comparison |
-| 6 | `ssvr_spatial_loco.R` | `ssvr_spatial_loco.csv`, `ssvr_random_split_baseline.csv` | SSVR's random-split-vs-LOCO comparison; Maysan negative-$R^2$ finding and neighbor table |
-| 7 | `global_models_spatial_loco.R` | `rf_spatial_loco.csv`, `rf_random_split_baseline.csv`, `svr_spatial_loco.csv`, `svr_random_split_baseline.csv` (required); + `rf_vs_srf_loco_comparison.csv`, `svr_vs_ssvr_loco_comparison.csv` (derivable, optional) | Paired RF-vs-SRF / SVR-vs-SSVR tests -- the paper's central finding |
-| 8 | `sensitivity_analysis.R` | `sensitivity_baseline_seed123.csv`, `sensitivity_seed456.csv`, `sensitivity_seed789.csv`, `sensitivity_wide_grid.csv`, `sensitivity_idw_weights.csv`, `sensitivity_full_summary.csv` | Robustness to seed / grid / spatial-weighting (Limitations) |
-| 9 | `rebuild_srf_and_importance.R` | `variable_importance.pdf` | Variable-importance figure (Results) |
-| 10 | `maps_plotting.R` | 10 PNG maps (`Iraq_Climate_Interpolated_2015.png` ... `2024.png`) | Ten-year spatio-temporal humidity figures |
+| `City` | governorate ID (1–18; see table below) | – | – |
+| `Humidity` | specific humidity at 2 m (response) | g/kg | QV2M |
+| `Temp.` | air temperature at 2 m | °C | T2M |
+| `Top of Atmosphere` | top-of-atmosphere shortwave irradiance | kWh m⁻² day⁻¹ | TOA_SW_DWN |
+| `Wind Speed` | wind speed | m/s | WS2M / WS10M |
+| `Precipitation` | precipitation | mm/day | PRECTOTCORR |
+| `Soil Moisture` | surface soil wetness | 0–1 (dimensionless) | GWETTOP |
+| `Latitude`, `Longitude` | governorate coordinates (WGS84) | degrees | – |
 
-Output files from previous runs can be archived directly in the matching
-folder above, without re-running anything. Git does not track empty
-folders, so there's no need for placeholder files in any folder you leave
-empty.
+**Row order matters.** The file has no date column. Within each `City`, rows are in chronological order (row 1 = January 2015, row 120 = December 2024). The temporal designs (rolling-origin and spatiotemporal LOCO) derive the year and month from this order. Do not sort the file.
 
-## Repository layout
+The `City` column is stored as Excel formulas (`=A2+1`, …) with cached values; R's `openxlsx`/`readxl` read the cached values correctly.
 
-```
-C:/Weather Project/
-├── Dalya5x.xlsx
-├── Iraq_shp/
-│   └── gadm36_IRQ_1.shp   (plus its .dbf/.shx/.prj companions)
-├── scripts/
-│   ├── weather_R_FINAL.R
-│   ├── gwr_blockcv_scenarios.R
-│   ├── spotcheck_bisquare_12foldCV.R
-│   ├── rerun_sr_random_split_75_25.R
-│   ├── srf_spatial_loco.R
-│   ├── ssvr_spatial_loco.R
-│   ├── global_models_spatial_loco.R
-│   ├── sensitivity_analysis.R
-│   ├── rebuild_srf_and_importance.R
-│   └── maps_plotting.R
-├── outputs/
-│   ├── 01_weather_R_FINAL/
-│   ├── 02_gwr_blockcv_scenarios/
-│   ├── 03_spotcheck_bisquare_12foldCV/
-│   ├── 04_rerun_sr_random_split_75_25/
-│   ├── 05_srf_spatial_loco/
-│   ├── 06_ssvr_spatial_loco/
-│   ├── 07_global_models_spatial_loco/
-│   ├── 08_sensitivity_analysis/
-│   ├── 09_rebuild_srf_and_importance/
-│   └── 10_maps_plotting/
-└── README.md
-```
+### Governorate IDs
 
-This is both the local working layout and the repository layout -- running
-the scripts produces exactly this structure, so nothing needs to be
-manually reorganized afterward.
-
-## A note on governorate-name correction in `maps_plotting.R`
-
-The Iraq governorates shapefile (`gadm36_IRQ_1.shp`) spells two
-governorates as `Sala ad-Din` and `Al-Muthannia`. Since this shapefile is
-a separate GIS asset that has not been edited, `maps_plotting.R` corrects
-these two names to `Salah al-Din` and `Muthanna` immediately after reading
-the shapefile, so every downstream use -- the City-ID lookup table and the
-map's text labels -- automatically shows the corrected spelling. If you
-ever replace `gadm36_IRQ_1.shp` with a shapefile that already spells these
-correctly, this correction step becomes a harmless no-op.
-
-## "City" (code/CSVs) vs. "Governorate" (paper)
-
-Every script and output CSV identifies each of Iraq's 18 administrative
-units using a numeric `City` column (1-18), inherited from the source
-Excel file's own column name. The paper uses the more precise term
-"governorate" instead. These refer to the exact same 18 units -- `City`
-was kept as-is in the code, since it's a raw-data column name depended
-upon across many interdependent scripts and CSV files, and renaming it
-everywhere would add risk without changing what the data represents. Use
-this table to map any `City` value to its governorate name:
+The ID-to-name mapping below was verified with a point-in-polygon test of each `City` coordinate against the GADM level-1 boundaries.
 
 | City | Governorate | City | Governorate |
 |---|---|---|---|
@@ -133,8 +73,76 @@ this table to map any `City` value to its governorate name:
 | 2 | Ninawa | 11 | Karbala |
 | 3 | Arbil | 12 | Babil |
 | 4 | Sulaymaniyah | 13 | Najaf |
-| 5 | Kirkuk | 14 | Maysan |
-| 6 | Salah al-Din | 15 | Qadisiyah |
-| 7 | Diyala | 16 | Dhi Qar |
+| 5 | Kirkuk | 14 | Al-Qadisiyah |
+| 6 | Salah ad-Din | 15 | Dhi Qar |
+| 7 | Diyala | 16 | Maysan |
 | 8 | Baghdad | 17 | Muthanna |
 | 9 | Al-Anbar | 18 | Al-Basrah |
+
+The code and CSV outputs use the raw-data column name `City`; the paper uses "governorate". They refer to the same 18 units.
+
+---
+
+## 3. Scripts, outputs and what they reproduce
+
+Run in this order (`run_all.R` does this automatically). Scripts 4 and 7 read outputs of earlier scripts.
+
+| # | Script | Main outputs (`outputs/NN_name/`) | Reproduces in the paper | Approx. runtime* |
+|---|---|---|---|---|
+| 1 | `weather_R_FINAL.R` | `table2_combined.csv`, `k_sensitivity_summary.csv` | Table 2; Table A1 (k-sensitivity) | minutes |
+| 2 | `gwr_blockcv_scenarios.R` | `loco_spatial_by_city.csv`, `loco_spatiotemporal_by_city.csv`, `rolling_temporal_by_year.csv` | Table 3; Tables A4, A5, A7 | hours |
+| 3 | `spotcheck_bisquare_12foldCV.R` | `spotcheck_spatial_loco_bisquare.csv` | Table A3 (LOCO rows) | ~1 h |
+| 4 | `rerun_sr_random_split_75_25.R` | `random_split_100reps.csv`, `spotcheck_random_bisquare.csv` | random-split rows of Table 3 and Table A3 | ~1 h |
+| 5 | `srf_spatial_loco.R` | `srf_spatial_loco.csv`, `srf_random_split_baseline.csv` | Table 4 (SRF); Table A6 | ~30 min |
+| 6 | `ssvr_spatial_loco.R` | `ssvr_spatial_loco.csv`, `ssvr_random_split_baseline.csv` | Table 4 (SSVR); Table 5; Table A6 | ~30 min |
+| 7 | `global_models_spatial_loco.R` | `rf_*`, `svr_*`, `rf_vs_srf_loco_comparison.csv`, `svr_vs_ssvr_loco_comparison.csv` | Table 4 (RF, SVR, paired tests); Table A6 | ~30 min |
+| 8 | `sensitivity_analysis.R` | `sensitivity_full_summary.csv` and per-configuration files | Table A2 | hours |
+| 9 | `rebuild_srf_and_importance.R` | `variable_importance.pdf` | Fig. 4 | < 1 min |
+| 10 | `maps_plotting.R` | `Iraq_Climate_Interpolated_2015.png` … `2024.png` | Figs. 1–3 | minutes |
+
+\*Single-core desktop; indicative only. Long-running scripts are checkpointed: if interrupted, re-run them and they resume from the last completed fold or repetition.
+
+All random steps use fixed seeds (e.g. `Seed = 123`, `set.seed(20240715 + r)`), so outputs are reproducible up to platform-level floating-point differences.
+
+### Checking a run against the archived results
+
+The `outputs/` folder contains the results reported in the paper. After a run, compare the new CSVs with those archived in Git, for example `git diff --stat outputs/` or, in R, `all.equal(read.csv(new), read.csv(archived), tolerance = 1e-6)`.
+
+---
+
+## 4. Method notes relevant to the code
+
+- **Leakage-free spatial lag.** The train/test split is made *before* any spatial-lag feature is built. Lags are computed at governorate level from training-only governorate means and a k-nearest-neighbour structure over the 18 governorate coordinates (k = 5; a governorate is never its own neighbour). In LOCO the lags are rebuilt inside every fold from the 17 training governorates only. See `weather_R_FINAL.R` (header and the function `build_city_lag()`) and Section 2.4 of the paper.
+- **Statistical tests.** One-sided Mann–Whitney U (different fold sets) and one-sided Wilcoxon signed-rank (paired governorates), with rank-biserial effect sizes and 10,000-resample bootstrap percentile CIs.
+
+---
+
+## 5. Repository layout
+
+```
+Iraq-weather/
+├── README.md
+├── LICENSE
+├── CITATION.cff
+├── run_all.R
+├── get_boundaries.R
+├── Dalya5x.xlsx
+├── Iraq_shp/            (created by get_boundaries.R; not version-controlled)
+├── scripts/             (10 analysis scripts, see Section 3)
+└── outputs/
+    ├── 01_weather_R_FINAL/ … 10_maps_plotting/
+    ├── run_all_log.txt  (written by run_all.R)
+    └── sessionInfo.txt  (written by run_all.R)
+```
+
+---
+
+## 6. Data sources and licences
+
+- **Climate data:** NASA POWER Project (https://power.larc.nasa.gov/), derived from MERRA-2. NASA POWER data are freely available; please acknowledge the NASA Langley Research Center POWER Project.
+- **Boundaries:** GADM v3.6 (https://gadm.org). GADM data may be used for non-commercial purposes but may not be redistributed, so they are downloaded by `get_boundaries.R` rather than stored here.
+- **Code:** MIT licence.
+
+## 7. How to cite
+
+See `CITATION.cff`. Please cite the paper when using this code.

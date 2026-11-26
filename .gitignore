@@ -47,3 +47,6 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# GADM boundaries are downloaded by get_boundaries.R (licence forbids redistribution)
+Iraq_shp/
